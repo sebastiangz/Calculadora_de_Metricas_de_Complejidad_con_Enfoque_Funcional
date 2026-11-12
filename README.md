@@ -656,3 +656,71 @@ def funcion_simple():
             print(f"  🔹 Profundidad Máxima de Anidamiento: {m.max_nesting_depth}\n")
     finally:
         os.remove(temp_path)
+
+
+---
+
+## Parte 2: Validación de resultados con Radon
+
+Después de calcular la complejidad ciclomática mediante el recorrido del AST, es conveniente validar que los resultados obtenidos por nuestro analizador sean consistentes con una herramienta especializada.
+
+Para esta validación utilizamos **Radon**, una librería de Python capaz de calcular diferentes métricas de calidad y complejidad de código.
+
+La comparación permite analizar una misma función mediante dos métodos:
+
+1. Nuestro algoritmo basado en AST y pattern matching.
+2. El cálculo realizado por Radon.
+
+Si ambos resultados coinciden, tenemos una evidencia adicional de que nuestro cálculo de complejidad ciclomática está funcionando correctamente.
+
+```python
+from radon.complexity import cc_visit
+
+
+def obtener_complejidad_radon(codigo_fuente: str) -> dict:
+    """
+    Calcula la complejidad ciclomática de las funciones usando Radon.
+
+    Args:
+        codigo_fuente (str): Código Python que se desea analizar.
+
+    Returns:
+        dict: Diccionario con el nombre de cada función y su
+        complejidad ciclomática.
+    """
+    bloques = cc_visit(codigo_fuente)
+
+    return {
+        bloque.name: bloque.complexity
+        for bloque in bloques
+    }
+
+
+def comparar_con_radon(ruta_archivo: str):
+    """
+    Compara la complejidad calculada por nuestro analizador con Radon.
+    """
+    with open(ruta_archivo, "r", encoding="utf-8") as archivo:
+        codigo = archivo.read()
+
+    metricas_propias = analizar_archivo_py(ruta_archivo)
+    metricas_radon = obtener_complejidad_radon(codigo)
+
+    print("=== COMPARACIÓN CON RADON ===\n")
+
+    for metrica in metricas_propias:
+        propia = metrica.cyclomatic_complexity
+        resultado_radon = metricas_radon.get(metrica.name)
+
+        print(f"Función: {metrica.name}")
+        print(f"  Nuestro analizador: {propia}")
+        print(f"  Radon: {resultado_radon}")
+
+        if resultado_radon is None:
+            print("  Resultado: función no encontrada por Radon")
+        elif propia == resultado_radon:
+            print("  Resultado: COINCIDEN")
+        else:
+            print("  Resultado: NO COINCIDEN")
+
+        print()
