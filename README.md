@@ -496,3 +496,46 @@ pytest tests/ -k "benchmark"
 ## 📄 Licencia
 
 Proyecto académico - Universidad de Colima © 2025
+
+
+edicion 
+proyecto
+
+parte 1** análisis de dato del proyecto**
+
+primeramente explicare de que tratara este proyecto,El  tu nivel de complejidad, utilizando ciertas funciones y agregados para analizar los archivos .py, lo canalizará serás tú aceite de forma recursiva y hará un reporte por la función ciclomatica, también utilizaremos el ast y el match para clasificar los nodos de los archivos y comparando los resultados con el método randon
+
+Un AST (Árbol de Sintaxis Abstracta, o Abstract Syntax Tree en inglés) es una representación en forma de árbol de la estructura de tu código fuente.
+En lugar de leer el código como una simple línea de texto, el programa lo transforma en una jerarquía de datos donde cada elemento (una variable, una operación, un bucle) es un nodo.
+
+¿Qué es y para qué sirve?
+
+• Simplificación: Omite detalles innecesarios del código original (como paréntesis, puntos y comas o espacios en blanco) y deja solo la lógica pura.
+• Traducción a datos: Convierte el texto del código en un objeto que los programas pueden analizar, modificar o transformar.
+• Compiladores e intérpretes: Es el paso intermedio tras leer el texto (analizador léxico/sintáctico) antes de generar código de máquina o código intermedio.
+• Herramientas de análisis (SAST / Linters): Permiten a herramientas como ESLint, Babel o analizadores de seguridad revisar el código en busca de errores, malas prácticas o vulnerabilidades.
+
+Bien ya que ahora entendimos qué es el ast y por qué lo vamos a utilizar daremos un pequeño detalle otros dos aspectos que vamos a utilizar en este caso funciones de programación funcional orientadas a la separación y clasificación de componentes
+
+ match
+En programación funcional, un match (o pattern matching / coincidencia de patrones) es un mecanismo que permite comparar un valor o estructura de datos contra uno o varios patrones para seleccionar una rama de código y, opcionalmente, descomponer (destructurar) el objeto para extraer sus partes internas.
+
+Características principales
+
+* Comparación estructural: No solo evalúa la igualdad de valores simples (como números o textos), sino que verifica la forma, el tipo o la composición interna de estructuras complejas (como listas, árboles o tipos de datos algebraicos).
+* Desestructuración: Permite extraer variables directamente de los datos mientras se evalúa el patrón.
+* Evaluación como expresión: A diferencia de una instrucción switch tradicional en lenguajes imperativos, un match suele retornar un valor (es una expresión).
+* Patrón comodín (wildcard): Se utiliza un símbolo (como _) para capturar cualquier otro caso que no haya coincidido con los patrones anteriores.
+
+ radon
+Radon es una librería de Python que sirve para analizar el código fuente y calcular métricas de calidad y complejidad. Se utiliza principalmente para detectar bloques de código difíciles de leer o mantener y facilitar la refactorización.
+
+Funciones y métricas principales
+
+Puedes usar Radon desde la línea de comandos o integrarla en flujos de trabajo (como CI/CD o linters) para obtener cuatro tipos de análisis:
+* Complejidad ciclomática (cc). Cuenta el número de caminos independientes o puntos de decisión (como bucles for o condicionales if) en una función. Califica el código con letras de la A (muy simple) a la F (muy complejo y propenso a errores).
+* Índice de mantenibilidad (mi). Calcula una puntuación del 0 al 100 que indica qué tan fácil es mantener un archivo. Combina la complejidad ciclomática, el volumen de código y las líneas de comentarios.
+* Métricas sin procesar (raw). Cuenta datos básicos del archivo, como el total de líneas de código (LOC), líneas lógicas (LLOC), comentarios y espacios en blanco.
+* Métricas de Halstead (hal). Evalúa la complejidad basándose en la cantidad de operadores (palabras clave, símbolos) y operandos (variables, valores) para estimar el esfuerzo de desarrollo y posibles errores.
+
+
