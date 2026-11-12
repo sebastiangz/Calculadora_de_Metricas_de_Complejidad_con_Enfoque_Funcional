@@ -654,6 +654,8 @@ def funcion_simple():
             print(f"  🔹 Complejidad Ciclomática (CC): {m.cyclomatic_complexity}")
             print(f"  🔹 Líneas de Código: {m.lines}")
             print(f"  🔹 Profundidad Máxima de Anidamiento: {m.max_nesting_depth}\n")
+
+        comparar_con_radon(temp_path)
     finally:
         os.remove(temp_path)
 
@@ -724,3 +726,5 @@ def comparar_con_radon(ruta_archivo: str):
             print("  Resultado: NO COINCIDEN")
 
         print()
+```
+
