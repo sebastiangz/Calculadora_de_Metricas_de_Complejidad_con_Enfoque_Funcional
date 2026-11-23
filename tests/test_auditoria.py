@@ -150,7 +150,7 @@ def test_cli_codigos_y_entradas(tmp_path, argumentos, estado, mensaje):
         (tmp_path / nombre).write_bytes(contenido)
     resultado = subprocess.run(
         [sys.executable, str(RAIZ / "main.py"), *argumentos],
-        cwd=tmp_path, capture_output=True, text=True, encoding=locale.getpreferredencoding(False),,
+        cwd=tmp_path, capture_output=True, text=True, encoding=locale.getpreferredencoding(False),
     )
     assert resultado.returncode == estado
     if estado == 0:
