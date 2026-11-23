@@ -8,6 +8,7 @@ from src.analizador import calcular_metricas_funcion, es_funcion
 from src.cfg import CFG, construir_cfg
 from src.metricas import Halstead, calcular_halstead, complejidad_cognitiva, profundidad
 from src.validacion import complejidades_por_posicion
+from src.visualizacion import cfg_a_svg
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,8 @@ class Informe:
 
 def analizar(codigo: str, archivo: str = "<fuente>") -> Informe:
     arbol = ast.parse(codigo, filename=archivo)
+    # Valida el contexto de return, break y otras sentencias sin ejecutar el archivo.
+    compile(arbol, archivo, "exec", dont_inherit=True)
     radon = complejidades_por_posicion(arbol)
     funciones = sorted(filter(es_funcion, ast.walk(arbol)), key=lambda nodo: nodo.lineno)
     informes = []
@@ -70,7 +73,7 @@ def a_texto(informe: Informe) -> str:
             f"CC propia: {funcion.cc_propia} | CC Radon: {radon} | Coinciden: {coincide}",
             f"Líneas: {funcion.lineas} | Anidamiento: {funcion.profundidad} | Altura AST: {funcion.altura_ast}",
             f"Complejidad cognitiva: {funcion.cognitiva}",
-            "Halstead: " + ", ".join(f"{k}={v:.4g}" for k, v in asdict(funcion.halstead).items()),
+            "Halstead: " + ", ".join(f"{k}={v}" for k, v in asdict(funcion.halstead).items()),
             f"CFG: {len(funcion.cfg.nodos)} nodos, {len(funcion.cfg.aristas)} aristas",
         )
         partes.append(f"\nFunción: {funcion.nombre} (línea {funcion.linea})")
@@ -81,18 +84,22 @@ def a_texto(informe: Informe) -> str:
 def a_html(informe: Informe) -> str:
     resumen = escape(a_texto(informe))
     grafos = []
-    for funcion in informe.funciones:
-        nodos = {n.id: f"{n.tipo} [{n.id}]" for n in funcion.cfg.nodos}
-        filas = "\n".join(
-            f"{nodos[a.origen]} → {nodos[a.destino]} ({a.etiqueta})"
-            for a in funcion.cfg.aristas
-        )
+    for numero, funcion in enumerate(informe.funciones):
         titulo = escape(f"{funcion.nombre} (línea {funcion.linea})")
-        grafos.append(f"<details><summary>CFG de {titulo}</summary><pre>{escape(filas)}</pre></details>")
+        svg = cfg_a_svg(funcion.cfg, numero)
+        grafos.append(
+            f'<details open><summary>CFG de {titulo}</summary>'
+            f'<div class="grafo">{svg}</div></details>'
+        )
     contenido = "\n".join(grafos)
     return (
-        '<!doctype html>\n<html lang="es">\n<meta charset="utf-8">\n'
+        '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         '<title>Informe de complejidad</title>\n'
-        '<h1>Informe de complejidad</h1>\n'
-        f'<pre>{resumen}</pre>\n{contenido}\n</html>'
+        '<style>body{font:1rem system-ui,sans-serif;margin:2rem;color:#0f172a}'
+        'pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f5f9;padding:1rem}'
+        'details{margin:1rem 0}summary{cursor:pointer;font-weight:600}'
+        '.grafo{overflow-x:auto}svg{display:block;background:white}</style>\n'
+        '</head>\n<body>\n<h1>Informe de complejidad</h1>\n'
+        f'<pre>{resumen}</pre>\n{contenido}\n</body>\n</html>'
     )
