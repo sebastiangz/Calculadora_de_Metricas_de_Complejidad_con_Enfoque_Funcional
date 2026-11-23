@@ -3,47 +3,72 @@
 **Universidad de Colima - Ingeniería en Computación Inteligente**  
 **Materia**: Programación Funcional  
 **Profesor**: Gonzalez Zepeda Sebastian  
-**Semestre**: Agosto 2025 - Enero 2026
+**Semestre**: Agosto 2026 - Enero 2027
 
-## Implementado actualmente
+Analiza código Python por función sin ejecutarlo. El programa muestra sus métricas y dibuja su grafo de flujo de control (CFG).
 
-- [`src/analizador.py`](src/analizador.py) analiza el AST de un archivo Python. Identifica funciones síncronas y asíncronas y devuelve una tupla de instancias inmutables de `FunctionMetrics`.
-- La complejidad ciclomática parte de 1. El analizador suma por `if`, `while`, `for`, `async for`, `except`, operadores booleanos y casos de `match`.
-- Las líneas físicas se cuentan desde la definición de la función hasta su última línea, ambas incluidas. La profundidad mide el anidamiento de las estructuras de control que reconoce el analizador.
-- [`src/validacion.py`](src/validacion.py) compara la complejidad ciclomática con Radon usando el nombre y la línea de definición.
+## Arquitectura
+
+- [`src/analizador.py`](src/analizador.py) identifica funciones síncronas y asíncronas en el AST y calcula sus métricas básicas.
+- [`src/validacion.py`](src/validacion.py) obtiene la complejidad de Radon y la cruza por nombre y línea de definición.
 - [`src/metricas.py`](src/metricas.py) calcula complejidad cognitiva, Halstead y altura del AST.
-- [`src/cfg.py`](src/cfg.py) construye un grafo inmutable por función con secuencias, ramas, bucles y salidas explícitas.
-- [`src/reportes.py`](src/reportes.py) combina las métricas y el CFG en texto, JSON y HTML. El JSON incluye nodos y aristas. El HTML muestra el resumen y las aristas de cada función.
-- [`main.py`](main.py) recibe un archivo Python UTF-8. Las pruebas están en [`tests/`](tests/).
+- [`src/cfg.py`](src/cfg.py) construye el grafo lógico con nodos y aristas inmutables.
+- [`src/visualizacion.py`](src/visualizacion.py) convierte el grafo a SVG sin dependencias gráficas.
+- [`src/reportes.py`](src/reportes.py) reúne las métricas y el CFG en un informe común. [`main.py`](main.py) gestiona la entrada y selecciona el formato.
 
-## Instalación y uso
+## Instalación y ejecución
 
 Desde la raíz del repositorio, con Python 3.10 o posterior:
 
 ```bash
 python -m pip install -r requirements.txt pytest
-python main.py ruta/al/archivo.py
-python main.py ruta/al/archivo.py --json > informe.json
-python main.py ruta/al/archivo.py --html > informe.html
+python main.py ejemplo.py
+python main.py ejemplo.py --json > informe.json
+python main.py ejemplo.py --html > informe.html
 python -m pytest -v
 ```
 
-## Reglas de las métricas
+El archivo debe tener extensión `.py`. Se lee como UTF-8 por defecto y admite la declaración de codificación de Python. La CLI termina con código 0 en caso de éxito, 1 si falla la lectura o el análisis y 2 si el uso es incorrecto.
 
-- **Cognitiva.** Una decisión suma 1 más el nivel de anidamiento según las estructuras reconocidas. Un `elif`, un `else` de condicional o bucle, cada nodo booleano y cada `break` o `continue` suman 1. Se usa una regla propia para Python y el cálculo excluye los ámbitos internos.
-- **Halstead.** Enumera operadores aritméticos, unarios, booleanos, comparaciones y asignaciones, y cuenta nombres y literales como operandos dentro del cuerpo de la función. Con esos conteos calcula vocabulario, longitud, volumen, dificultad y esfuerzo.
-- **Altura del AST.** Una hoja tiene altura 1. Un nodo con hijos tiene altura 1 más la mayor altura de sus hijos. El anidamiento de control se reporta aparte.
+El texto muestra cada función y el número de nodos y aristas. El JSON incluye las métricas, los nodos y las aristas en campos estructurados. El HTML muestra el mismo resumen y un SVG desplegable por función. Se puede abrir directamente en un navegador, incluso sin conexión.
+
+## Métricas
+
+- **Ciclomática.** Parte de 1 y suma por `if`, `for`, `async for`, `while`, `except`, operadores booleanos (un incremento por enlace `and` u `or`) y casos de `match`. Analiza el cuerpo de cada función y excluye la cabecera y los ámbitos internos. Radon se presenta como referencia independiente.
+- **Líneas y anidamiento de control.** Las líneas físicas abarcan desde el `def` o `async def` hasta la última línea de la función, inclusive. El anidamiento mide la profundidad de las estructuras de control que reconoce el analizador.
+- **Altura del AST.** Una hoja aporta 1. Un nodo con hijos aporta 1 más la mayor altura de sus hijos.
+- **Cognitiva.** Regla propia del proyecto. `if`, bucles, `except`, `match` y expresiones condicionales suman 1 más su nivel de anidamiento. Cada `elif`, `else` de condicional o bucle, nodo booleano, `break` y `continue` suman 1. Los ámbitos internos quedan fuera del cálculo de la función externa.
+- **Halstead.** El subconjunto de operadores incluye operaciones binarias, unarias, booleanas, comparaciones y asignaciones. Los operandos son nombres y literales del cuerpo. Las apariciones se cuentan en `N1` y `N2`. Los distintos se cuentan en `n1` y `n2`, por clase de operador, identificador o par tipo-valor del literal. El vocabulario es `n1 + n2`, la longitud es `N1 + N2`, el volumen es `longitud × log₂(vocabulario)`, la dificultad es `(n1/2) × (N2/n2)` y el esfuerzo es `dificultad × volumen`. Para un vocabulario vacío, el volumen es cero. Si no hay operandos, la dificultad es cero.
+
+## CFG y visualización
+
+El grafo conecta la entrada con las sentencias y la salida. Un condicional tiene aristas verdadera y falsa. Un bucle enlaza su cabecera con el cuerpo y con su continuación. Los retornos y `raise` van a la salida. `break` y `continue` usan los destinos del bucle correspondiente.
+
+En el SVG, cada sentencia se identifica por su tipo y línea. Los terminales se distinguen en azul y las decisiones en amarillo. Las flechas etiquetadas muestran el destino del flujo. Los carriles laterales ayudan a distinguir los saltos y los bucles.
+
+## Ejemplo y pruebas
+
+Guarda en `ejemplo.py`:
+
+```python
+def doble_si_positivo(x):
+    if x > 0:
+        return x * 2
+    return 0
+```
+
+El programa muestra complejidad ciclomática propia y de Radon de 2, complejidad cognitiva de 1, 4 líneas, anidamiento de 1 y un CFG con 5 nodos y 5 aristas. La suite comprueba el parser, las métricas, Radon, el grafo, el SVG, los formatos de reporte y los códigos de salida de la CLI.
 
 ## Limitaciones conocidas
 
-- En un `match` con `case 0` y `case _`, el analizador del proyecto suma ambos casos y devuelve 3. Radon 6.0.1 excluye el comodín del incremento y devuelve 2. Si Radon carece de una referencia para una función, el valor y la coincidencia aparecen como `null` en JSON.
-- El CFG representa `if/else`, `for`, `async for`, `while`, `else` de bucle, retornos, `raise`, `break` y `continue`. Las expresiones se tratan como parte de su sentencia. Los bloques `try`, `with` y `match` se marcan como opacos, con una arista de continuación que aproxima su flujo.
+- Con `case 0` y `case _`, la complejidad propia es 3 y Radon 6.0.1 devuelve 2. Radon también incrementa por el `else` de bucle y puede contar decisiones dentro de una lambda. Las reglas propias cuentan el bucle sin ese incremento y excluyen el cuerpo de la lambda. Si falta una referencia de Radon, su valor y la coincidencia aparecen como `null` en JSON.
+- Los bloques `try`, `with` y `match` son opacos en el CFG. La arista de continuación aproxima su flujo y las expresiones quedan dentro de su sentencia. El SVG puede requerir desplazamiento horizontal para grafos grandes.
+- Los inventarios de cognitiva y Halstead son convenciones del proyecto. Los resultados pueden diferir de los de otras herramientas.
 
 ## Trabajo futuro
 
-- Índice de mantenibilidad con una definición explícita y pruebas de referencia.
 - Modelar excepciones, gestores de contexto y `match` dentro del CFG.
-- Ampliar las reglas de complejidad cognitiva y el inventario de Halstead.
+- Evaluar el índice de mantenibilidad como métrica de archivo, con su propia referencia y sus unidades documentadas.
 
 ## Fundamentos académicos
 
