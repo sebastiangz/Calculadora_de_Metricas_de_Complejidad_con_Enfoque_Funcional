@@ -1,509 +1,53 @@
 # 📊 Proyecto 8: Calculadora de Métricas de Complejidad con Enfoque Funcional
 
-## 📋 Descripción del Proyecto
-
-Sistema funcional para analizar código fuente y calcular métricas de complejidad (ciclomática, cognitiva, Halstead), utilizando AST parsing funcional, análisis de grafos y generación de reportes.
-
 **Universidad de Colima - Ingeniería en Computación Inteligente**  
 **Materia**: Programación Funcional  
 **Profesor**: Gonzalez Zepeda Sebastian  
 **Semestre**: Agosto 2025 - Enero 2026
 
----
+## Implementado actualmente
 
-## 🎯 Objetivos 
+- [`src/analizador.py`](src/analizador.py) analiza el AST de un archivo Python. Identifica funciones síncronas y asíncronas y devuelve una tupla de instancias inmutables de `FunctionMetrics`.
+- La complejidad ciclomática parte de 1. El analizador suma por `if`, `while`, `for`, `async for`, `except`, operadores booleanos y casos de `match`.
+- Las líneas físicas se cuentan desde la definición de la función hasta su última línea, ambas incluidas. La profundidad mide el anidamiento de las estructuras de control que reconoce el analizador.
+- [`src/validacion.py`](src/validacion.py) compara la complejidad ciclomática con Radon usando el nombre y la línea de definición.
+- [`src/metricas.py`](src/metricas.py) calcula complejidad cognitiva, Halstead y altura del AST.
+- [`src/cfg.py`](src/cfg.py) construye un grafo inmutable por función con secuencias, ramas, bucles y salidas explícitas.
+- [`src/reportes.py`](src/reportes.py) combina las métricas y el CFG en texto, JSON y HTML. El JSON incluye nodos y aristas. El HTML muestra el resumen y las aristas de cada función.
+- [`main.py`](main.py) recibe un archivo Python UTF-8. Las pruebas están en [`tests/`](tests/).
 
-- Implementar **parsers funcionales** para análisis de código
-- Desarrollar **calculadores de métricas** mediante funciones puras
-- Aplicar **análisis de grafos** funcional para control flow
-- Crear **reportes** mediante transformaciones composables
-- Utilizar **pattern matching** para análisis sintáctico
-- Practicar **recursión** sobre AST (Abstract Syntax Trees)
+## Instalación y uso
 
----
-
-## 🛠️ Tecnologías Utilizadas
-
-- **Lenguaje**: Python 3.11+
-- **Paradigma**: Programación Funcional
-- **Librerías**:
-  - `ast` - Abstract Syntax Trees
-  - `radon` - Métricas de complejidad
-  - `networkx` - Grafos de flujo de control
-  - `toolz` - Utilidades funcionales
-  - `jinja2` - Templates para reportes
-
----
-
-## 📦 Instalación
+Desde la raíz del repositorio, con Python 3.10 o posterior:
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/complexity-analyzer.git
-cd complexity-analyzer
-
-# Crear entorno virtual
-python -m venv venv
-source venv/bin/activate
-
-# Instalar dependencias
-pip install -r requirements.txt
+python -m pip install -r requirements.txt pytest
+python main.py ruta/al/archivo.py
+python main.py ruta/al/archivo.py --json > informe.json
+python main.py ruta/al/archivo.py --html > informe.html
+python -m pytest -v
 ```
 
-### requirements.txt
-```
-radon>=6.0.0
-networkx>=3.2.0
-toolz>=0.12.0
-jinja2>=3.1.0
-graphviz>=0.20.0
-pandas>=2.0.0
-matplotlib>=3.7.0
-```
+## Reglas de las métricas
 
----
+- **Cognitiva.** Una decisión suma 1 más el nivel de anidamiento según las estructuras reconocidas. Un `elif`, un `else` de condicional o bucle, cada nodo booleano y cada `break` o `continue` suman 1. Se usa una regla propia para Python y el cálculo excluye los ámbitos internos.
+- **Halstead.** Enumera operadores aritméticos, unarios, booleanos, comparaciones y asignaciones, y cuenta nombres y literales como operandos dentro del cuerpo de la función. Con esos conteos calcula vocabulario, longitud, volumen, dificultad y esfuerzo.
+- **Altura del AST.** Una hoja tiene altura 1. Un nodo con hijos tiene altura 1 más la mayor altura de sus hijos. El anidamiento de control se reporta aparte.
 
-## 🚀 Uso del Sistema
+## Limitaciones conocidas
 
-```python
-from src.analyzer import CodeAnalyzer
-from src.metrics import cyclomatic, cognitive, halstead
+- En un `match` con `case 0` y `case _`, el analizador del proyecto suma ambos casos y devuelve 3. Radon 6.0.1 excluye el comodín del incremento y devuelve 2. Si Radon carece de una referencia para una función, el valor y la coincidencia aparecen como `null` en JSON.
+- El CFG representa `if/else`, `for`, `async for`, `while`, `else` de bucle, retornos, `raise`, `break` y `continue`. Las expresiones se tratan como parte de su sentencia. Los bloques `try`, `with` y `match` se marcan como opacos, con una arista de continuación que aproxima su flujo.
 
-# Analizar archivo
-analyzer = CodeAnalyzer('path/to/code.py')
+## Trabajo futuro
 
-# Calcular métricas funcionales
-metrics = analyzer.calculate(
-    cyclomatic_complexity,
-    cognitive_complexity,
-    halstead_metrics,
-    maintainability_index
-)
+- Índice de mantenibilidad con una definición explícita y pruebas de referencia.
+- Modelar excepciones, gestores de contexto y `match` dentro del CFG.
+- Ampliar las reglas de complejidad cognitiva y el inventario de Halstead.
 
-# Generar reporte
-report = analyzer.generate_report(
-    format='html',
-    include_graphs=True,
-    threshold_warnings=True
-)
+## Fundamentos académicos
 
-print(f"Complejidad Ciclomática: {metrics['cyclomatic']}")
-print(f"Índice de Mantenibilidad: {metrics['maintainability']}")
-```
-
----
-
-## 📂 Estructura del Proyecto
-
-```
-complexity-analyzer/
-├── src/
-│   ├── __init__.py
-│   ├── analyzer.py         # Analizador principal
-│   ├── parser.py           # Parser funcional de AST
-│   ├── metrics/
-│   │   ├── cyclomatic.py   # Complejidad ciclomática
-│   │   ├── cognitive.py    # Complejidad cognitiva
-│   │   ├── halstead.py     # Métricas de Halstead
-│   │   └── maintainability.py  # Índice de mantenibilidad
-│   ├── graph.py            # Control flow graphs
-│   ├── visitors.py         # AST visitors funcionales
-│   └── reports.py          # Generación de reportes
-├── tests/
-│   ├── test_cyclomatic.py
-│   ├── test_cognitive.py
-│   └── test_integration.py
-├── examples/
-│   ├── analyze_project.py
-│   └── batch_analysis.py
-├── templates/
-│   ├── report.html
-│   └── dashboard.html
-├── docs/
-│   ├── metrics_reference.md
-│   └── api_documentation.md
-├── requirements.txt
-├── README.md
-└── .gitignore
-```
-
----
-
-## 🔑 Características Principales
-
-### 1. Parser Funcional de AST
-```python
-import ast
-from typing import Callable, Any, List
-from dataclasses import dataclass
-
-@dataclass(frozen=True)
-class ASTNode:
-    """Nodo del AST inmutable"""
-    node_type: str
-    children: tuple
-    attributes: dict
-    
-    @staticmethod
-    def from_ast(node: ast.AST) -> 'ASTNode':
-        """Convertir ast.AST a ASTNode inmutable"""
-        return ASTNode(
-            node_type=type(node).__name__,
-            children=tuple(
-                ASTNode.from_ast(child) 
-                for child in ast.iter_child_nodes(node)
-            ),
-            attributes={
-                k: v for k, v in node.__dict__.items()
-                if not k.startswith('_')
-            }
-        )
-    
-    def fold(self, 
-             leaf_fn: Callable[[str, dict], Any],
-             branch_fn: Callable[[str, dict, List[Any]], Any]) -> Any:
-        """Fold funcional sobre el árbol"""
-        if not self.children:
-            return leaf_fn(self.node_type, self.attributes)
-        
-        children_results = [
-            child.fold(leaf_fn, branch_fn)
-            for child in self.children
-        ]
-        return branch_fn(self.node_type, self.attributes, children_results)
-
-def parse_code(source_code: str) -> ASTNode:
-    """Parser funcional de código"""
-    tree = ast.parse(source_code)
-    return ASTNode.from_ast(tree)
-```
-
-### 2. Complejidad Ciclomática Funcional
-```python
-from typing import Set
-
-def cyclomatic_complexity(ast_node: ASTNode) -> int:
-    """
-    Calcular complejidad ciclomática funcionalmente.
-    CC = E - N + 2P donde:
-    E = edges, N = nodes, P = connected components
-    """
-    decision_nodes = {
-        'If', 'While', 'For', 'ExceptHandler',
-        'With', 'Assert', 'BoolOp'
-    }
-    
-    def count_decisions(node_type: str, attrs: dict) -> int:
-        return 1 if node_type in decision_nodes else 0
-    
-    def sum_children(node_type: str, attrs: dict, children: List[int]) -> int:
-        current = count_decisions(node_type, attrs)
-        return current + sum(children)
-    
-    decisions = ast_node.fold(count_decisions, sum_children)
-    return decisions + 1  # Base complexity
-
-def calculate_per_function(ast_node: ASTNode) -> dict:
-    """Calcular complejidad por función"""
-    functions = {}
-    
-    def extract_function(node: ASTNode) -> dict:
-        if node.node_type == 'FunctionDef':
-            name = node.attributes.get('name', 'unknown')
-            complexity = cyclomatic_complexity(node)
-            functions[name] = complexity
-        
-        for child in node.children:
-            extract_function(child)
-        
-        return functions
-    
-    return extract_function(ast_node)
-```
-
-### 3. Complejidad Cognitiva Funcional
-```python
-def cognitive_complexity(ast_node: ASTNode, nesting_level: int = 0) -> int:
-    """
-    Complejidad cognitiva según SonarSource.
-    Penaliza anidamiento y estructuras complejas.
-    """
-    increment_nodes = {
-        'If': lambda: 1 + nesting_level,
-        'While': lambda: 1 + nesting_level,
-        'For': lambda: 1 + nesting_level,
-        'ExceptHandler': lambda: 1 + nesting_level,
-        'BoolOp': lambda: 1,  # and, or
-    }
-    
-    nested_structures = {'If', 'While', 'For', 'ExceptHandler', 'With'}
-    
-    def calculate(node: ASTNode, level: int) -> int:
-        complexity = 0
-        
-        # Incremento base
-        if node.node_type in increment_nodes:
-            complexity += increment_nodes[node.node_type]()
-        
-        # Recursión con nuevo nivel de anidamiento
-        new_level = level + 1 if node.node_type in nested_structures else level
-        
-        for child in node.children:
-            complexity += calculate(child, new_level)
-        
-        return complexity
-    
-    return calculate(ast_node, nesting_level)
-```
-
-### 4. Métricas de Halstead
-```python
-from collections import Counter
-from math import log2
-
-@dataclass(frozen=True)
-class HalsteadMetrics:
-    """Métricas de Halstead"""
-    n1: int  # Operadores únicos
-    n2: int  # Operandos únicos
-    N1: int  # Total operadores
-    N2: int  # Total operandos
-    
-    @property
-    def vocabulary(self) -> int:
-        """n = n1 + n2"""
-        return self.n1 + self.n2
-    
-    @property
-    def length(self) -> int:
-        """N = N1 + N2"""
-        return self.N1 + self.N2
-    
-    @property
-    def calculated_length(self) -> float:
-        """N̂ = n1*log2(n1) + n2*log2(n2)"""
-        if self.n1 == 0 or self.n2 == 0:
-            return 0
-        return self.n1 * log2(self.n1) + self.n2 * log2(self.n2)
-    
-    @property
-    def volume(self) -> float:
-        """V = N * log2(n)"""
-        if self.vocabulary == 0:
-            return 0
-        return self.length * log2(self.vocabulary)
-    
-    @property
-    def difficulty(self) -> float:
-        """D = (n1/2) * (N2/n2)"""
-        if self.n2 == 0:
-            return 0
-        return (self.n1 / 2) * (self.N2 / self.n2)
-    
-    @property
-    def effort(self) -> float:
-        """E = D * V"""
-        return self.difficulty * self.volume
-
-def calculate_halstead(ast_node: ASTNode) -> HalsteadMetrics:
-    """Calcular métricas de Halstead funcionalmente"""
-    operators = Counter()
-    operands = Counter()
-    
-    operator_nodes = {'BinOp', 'UnaryOp', 'Compare', 'BoolOp'}
-    operand_nodes = {'Name', 'Num', 'Str', 'Constant'}
-    
-    def count(node: ASTNode):
-        if node.node_type in operator_nodes:
-            operators[node.node_type] += 1
-        elif node.node_type in operand_nodes:
-            value = str(node.attributes.get('id') or 
-                       node.attributes.get('value', ''))
-            operands[value] += 1
-        
-        for child in node.children:
-            count(child)
-    
-    count(ast_node)
-    
-    return HalsteadMetrics(
-        n1=len(operators),
-        n2=len(operands),
-        N1=sum(operators.values()),
-        N2=sum(operands.values())
-    )
-```
-
-### 5. Control Flow Graph
-```python
-import networkx as nx
-
-def build_cfg(ast_node: ASTNode) -> nx.DiGraph:
-    """Construir grafo de flujo de control funcionalmente"""
-    graph = nx.DiGraph()
-    node_counter = [0]  # Mutable para IDs únicos
-    
-    def add_node() -> int:
-        node_id = node_counter[0]
-        node_counter[0] += 1
-        graph.add_node(node_id)
-        return node_id
-    
-    def process(node: ASTNode, entry: int) -> int:
-        """Procesar nodo y retornar ID de salida"""
-        if node.node_type == 'If':
-            # Nodo de decisión
-            condition = add_node()
-            graph.add_edge(entry, condition)
-            
-            # Rama verdadera
-            then_entry = add_node()
-            graph.add_edge(condition, then_entry, label='True')
-            then_exit = process_children(node.children[:1], then_entry)
-            
-            # Rama falsa
-            else_entry = add_node()
-            graph.add_edge(condition, else_entry, label='False')
-            else_exit = process_children(node.children[1:], else_entry)
-            
-            # Nodo de unión
-            exit_node = add_node()
-            graph.add_edge(then_exit, exit_node)
-            graph.add_edge(else_exit, exit_node)
-            return exit_node
-        
-        # Nodo simple
-        current = add_node()
-        graph.add_edge(entry, current)
-        return process_children(node.children, current)
-    
-    def process_children(children: tuple, entry: int) -> int:
-        current = entry
-        for child in children:
-            current = process(child, current)
-        return current
-    
-    entry = add_node()
-    process(ast_node, entry)
-    return graph
-```
-
----
-
-## 📊 Funcionalidades Implementadas
-
-### Métricas de Código
-- ✅ Complejidad Ciclomática
-- ✅ Complejidad Cognitiva
-- ✅ Métricas de Halstead
-- ✅ Índice de Mantenibilidad
-- ✅ Profundidad de anidamiento
-
-### Análisis Estructural
-- ✅ Control Flow Graphs
-- ✅ Call Graphs
-- ✅ Dependency Analysis
-- ✅ Code Smells detection
-
-### Reportes
-- ✅ HTML interactivo
-- ✅ PDF ejecutivo
-- ✅ JSON para CI/CD
-- ✅ Dashboards con gráficos
-
-### Integración
-- ✅ CLI tool
-- ✅ Pre-commit hooks
-- ✅ CI/CD integration
-- ✅ IDE plugins
-
----
-
-## 🧪 Testing
-
-```bash
-# Tests
-pytest tests/ -v
-
-# Análisis del propio proyecto
-python -m src.analyzer src/
-
-# Benchmarks
-pytest tests/ -k "benchmark"
-```
-
----
-
-## 📈 Pipeline de Desarrollo
-
-### Semana 1: Parser y Métricas Básicas (30 Oct - 5 Nov)
-- AST parsing funcional
-- Complejidad ciclomática
-- Estructura base
-
-### Semana 2: Métricas Avanzadas (6 Nov - 12 Nov)
-- Complejidad cognitiva
-- Halstead metrics
-- Control flow graphs
-
-### Semana 3: Reportes y Visualización (13 Nov - 19 Nov)
-- Generación de reportes
-- Visualizaciones
-- Dashboard
-
----
-
-## 💼 Componente de Emprendimiento
-
-**Aplicación Real**: Herramienta de auditoría de código para empresas
-
-**Propuesta de Valor**:
-- Evaluación objetiva de calidad de código
-- Identificación de deuda técnica
-- Priorización de refactoring
-- Integración con flujos DevOps
-
-**Modelo de Negocio**: SaaS + Consultoría
-
----
-
-## 📚 Referencias
-
-- McCabe, T.J. (1976). *A Complexity Measure*
-- Halstead, M.H. (1977). *Elements of Software Science*
-- **Radon**: https://radon.readthedocs.io/
-- **SonarSource Cognitive Complexity**: https://www.sonarsource.com/
-
----
-
-## 🏆 Criterios de Evaluación
-
-- **Parser Funcional (25%)**: Corrección, elegancia
-- **Métricas (30%)**: Precisión, completitud
-- **Grafos (20%)**: CFG correcto, visualización
-- **Reportes (25%)**: Claridad, utilidad
-
----
-
-## 👥 Autor
-
-**Nombre**: [Tu Nombre]  
-**Email**: [tu-email@ucol.mx]  
-**GitHub**: [@tu-usuario](https://github.com/tu-usuario)
-
----
-
-## 📄 Licencia
-
-Proyecto académico - Universidad de Colima © 2025
-
-
-edicion 
-proyecto
-
-parte 1** análisis de dato del proyecto**
-
-primeramente explicare de que tratara este proyecto,El  tu nivel de complejidad, utilizando ciertas funciones y agregados para analizar los archivos .py, lo canalizará serás tú aceite de forma recursiva y hará un reporte por la función ciclomatica, también utilizaremos el ast y el match para clasificar los nodos de los archivos y comparando los resultados con el método randon
+### AST
 
 Un AST (Árbol de Sintaxis Abstracta, o Abstract Syntax Tree en inglés) es una representación en forma de árbol de la estructura de tu código fuente.
 En lugar de leer el código como una simple línea de texto, el programa lo transforma en una jerarquía de datos donde cada elemento (una variable, una operación, un bucle) es un nodo.
@@ -515,9 +59,8 @@ En lugar de leer el código como una simple línea de texto, el programa lo tran
 • Compiladores e intérpretes: Es el paso intermedio tras leer el texto (analizador léxico/sintáctico) antes de generar código de máquina o código intermedio.
 • Herramientas de análisis (SAST / Linters): Permiten a herramientas como ESLint, Babel o analizadores de seguridad revisar el código en busca de errores, malas prácticas o vulnerabilidades.
 
-Bien ya que ahora entendimos qué es el ast y por qué lo vamos a utilizar daremos un pequeño detalle otros dos aspectos que vamos a utilizar en este caso funciones de programación funcional orientadas a la separación y clasificación de componentes
+### Pattern matching
 
- match
 En programación funcional, un match (o pattern matching / coincidencia de patrones) es un mecanismo que permite comparar un valor o estructura de datos contra uno o varios patrones para seleccionar una rama de código y, opcionalmente, descomponer (destructurar) el objeto para extraer sus partes internas.
 
 Características principales
@@ -527,7 +70,8 @@ Características principales
 * Evaluación como expresión: A diferencia de una instrucción switch tradicional en lenguajes imperativos, un match suele retornar un valor (es una expresión).
 * Patrón comodín (wildcard): Se utiliza un símbolo (como _) para capturar cualquier otro caso que no haya coincidido con los patrones anteriores.
 
- radon
+### Radon
+
 Radon es una librería de Python que sirve para analizar el código fuente y calcular métricas de calidad y complejidad. Se utiliza principalmente para detectar bloques de código difíciles de leer o mantener y facilitar la refactorización.
 
 Funciones y métricas principales
@@ -538,35 +82,15 @@ Puedes usar Radon desde la línea de comandos o integrarla en flujos de trabajo 
 * Métricas sin procesar (raw). Cuenta datos básicos del archivo, como el total de líneas de código (LOC), líneas lógicas (LLOC) y líneas de comentarios.
 * Métricas de Halstead (hal). Evalúa la complejidad basándose en la cantidad de operadores (palabras clave, símbolos) y operandos (variables, valores) para estimar el esfuerzo de desarrollo y posibles errores.
 
+El proyecto usa la complejidad ciclomática de Radon. Las demás métricas de la biblioteca forman parte del contexto académico.
 
-El analizador ejecutable está en [`src/analizador.py`](src/analizador.py). La función
-`analizar_archivo_py` devuelve las métricas de cada función como una tupla de instancias
-inmutables de `FunctionMetrics`.
+## Referencias
 
----
+- McCabe, T.J. (1976). *A Complexity Measure*
+- Halstead, M.H. (1977). *Elements of Software Science*
+- **Radon**: https://radon.readthedocs.io/
+- **SonarSource Cognitive Complexity**: https://www.sonarsource.com/
 
-## Parte 2: Validación de resultados con Radon
+## Licencia
 
-[`src/validacion.py`](src/validacion.py) usa Radon como referencia externa para la
-complejidad ciclomática. `obtener_complejidad_radon` recibe el código fuente como
-texto. Con `cc_visit` obtiene los bloques reconocidos por Radon y construye un
-diccionario con el nombre y la complejidad de cada bloque.
-
-[`tests/test_validacion.py`](tests/test_validacion.py) pasa el mismo código a
-ambos analizadores y compara sus diccionarios de complejidad. Cubre una función
-simple, un `if`, condicionales anidados y un archivo con varias funciones,
-incluida una asíncrona con un bucle y un operador booleano.
-
-Desde la raíz del repositorio, con Python 3.10 o posterior, instala las
-dependencias y ejecuta las pruebas:
-
-```bash
-python -m pip install -r requirements.txt pytest
-python -m pytest -v
-```
-
-La coincidencia respalda el cálculo para los casos probados. Por ejemplo, en
-un `match` con `case 0` y `case _`, el analizador del proyecto suma los dos casos
-a la complejidad base y devuelve 3. Radon 6.0.1 excluye el caso comodín del
-incremento y devuelve 2. La comparación por nombre presupone nombres únicos
-entre los bloques analizados.
+Proyecto académico - Universidad de Colima © 2025
