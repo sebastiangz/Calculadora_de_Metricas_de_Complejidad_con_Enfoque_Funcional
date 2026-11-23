@@ -535,196 +535,38 @@ Funciones y métricas principales
 Puedes usar Radon desde la línea de comandos o integrarla en flujos de trabajo (como CI/CD o linters) para obtener cuatro tipos de análisis:
 * Complejidad ciclomática (cc). Cuenta el número de caminos independientes o puntos de decisión (como bucles for o condicionales if) en una función. Califica el código con letras de la A (muy simple) a la F (muy complejo y propenso a errores).
 * Índice de mantenibilidad (mi). Calcula una puntuación del 0 al 100 que indica qué tan fácil es mantener un archivo. Combina la complejidad ciclomática, el volumen de código y las líneas de comentarios.
-* Métricas sin procesar (raw). Cuenta datos básicos del archivo, como el total de líneas de código (LOC), líneas lógicas (LLOC), comentarios y espacios en blanco.
+* Métricas sin procesar (raw). Cuenta datos básicos del archivo, como el total de líneas de código (LOC), líneas lógicas (LLOC) y líneas de comentarios.
 * Métricas de Halstead (hal). Evalúa la complejidad basándose en la cantidad de operadores (palabras clave, símbolos) y operandos (variables, valores) para estimar el esfuerzo de desarrollo y posibles errores.
 
-import ast
-from dataclasses import dataclass
-from typing import List
 
-@dataclass
-class FunctionMetrics:
-    name: str
-    cyclomatic_complexity: int
-    lines: int
-    max_nesting_depth: int
-
-def analizar_archivo_py(ruta_archivo: str) -> List[FunctionMetrics]:
-    """Lee un archivo .py, analiza su AST y extrae métricas por función."""
-    with open(ruta_archivo, 'r', encoding='utf-8') as f:
-        contenido = f.read()
-    
-    tree = ast.parse(contenido)
-    resultados = []
-
-    # Recorremos el árbol buscando definiciones de funciones (normales o asíncronas)
-    for nodo in ast.walk(tree):
-        if isinstance(nodo, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            resultados.append(calcular_metricas_funcion(nodo))
-            
-    return resultados
-
-def calcular_metricas_funcion(func_node: ast.FunctionDef) -> FunctionMetrics:
-    nombre = func_node.name
-    
-    # Cálculo de líneas de código físicas de la función
-    inicio = func_node.lineno
-    fin = getattr(func_node, 'end_lineno', inicio)
-    lineas = (fin - inicio) + 1
-    
-    cc = 1  # Complejidad ciclomática base
-    max_profundidad = 0
-
-    # Función recursiva interna para recorrer el AST usando 'match'
-    def recorrer_nodos(nodo: ast.AST, profundidad_actual: int = 0):
-        nonlocal cc, max_profundidad
-        
-        if profundidad_actual > max_profundidad:
-            max_profundidad = profundidad_actual
-
-        for hijo in ast.iter_child_nodes(nodo):
-            # Clasificación de nodos usando pattern matching (match-case)
-            match hijo:
-                case ast.If() | ast.While() | ast.For() | ast.AsyncFor() | ast.ExceptHandler():
-                    cc += 1
-                    # Estructuras de control que incrementan el anidamiento
-                    recorrer_nodos(hijo, profundidad_actual + 1)
-                    
-                case ast.BoolOp():
-                    # Operadores booleanos (and / or) añaden complejidad
-                    cc += len(hijo.values) - 1
-                    recorrer_nodos(hijo, profundidad_actual)
-                    
-                case ast.Match():
-                    # Estructuras match-case (Python 3.10+)
-                    cc += len(hijo.cases)
-                    recorrer_nodos(hijo, profundidad_actual + 1)
-                    
-                case ast.FunctionDef() | ast.ClassDef():
-                    # Evitamos descender a funciones o clases internas anidadas en el mismo scope por simplicidad
-                    continue
-                    
-                case _:
-                    # Cualquier otro nodo genérico que no altera directamente la CC
-                    recorrer_nodos(hijo, profundidad_actual)
-
-    recorrer_nodos(func_node, profundidad_actual=0)
-
-    return FunctionMetrics(
-        name=nombre,
-        cyclomatic_complexity=cc,
-        lines=lineas,
-        max_nesting_depth=max_profundidad
-    )
-
-# ==========================================
-# Ejemplo de uso y prueba local
-# ==========================================
-if __name__ == "__main__":
-    import tempfile
-    import os
-
-    # Creamos un archivo de prueba temporal con código de ejemplo
-    codigo_prueba = """
-def funcion_compleja(x, y):
-    if x > 0:
-        if y > 0:
-            print("Caso 1")
-        else:
-            print("Caso 2")
-    else:
-        while y < 10:
-            y += 1
-    return x + y
-
-def funcion_simple():
-    return "Hola mundo"
-"""
-    
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.py', encoding='utf-8') as tmp:
-        tmp.write(codigo_prueba)
-        temp_path = tmp.name
-
-    try:
-        print(f"--- Analizando archivo de prueba: {temp_path} ---\n")
-        metricas = analizar_archivo_py(temp_path)
-        
-        for m in metricas:
-            print(f"Función: '{m.name}'")
-            print(f"  🔹 Complejidad Ciclomática (CC): {m.cyclomatic_complexity}")
-            print(f"  🔹 Líneas de Código: {m.lines}")
-            print(f"  🔹 Profundidad Máxima de Anidamiento: {m.max_nesting_depth}\n")
-
-        comparar_con_radon(temp_path)
-    finally:
-        os.remove(temp_path)
-
+El analizador ejecutable está en [`src/analizador.py`](src/analizador.py). La función
+`analizar_archivo_py` devuelve las métricas de cada función como una tupla de instancias
+inmutables de `FunctionMetrics`.
 
 ---
 
 ## Parte 2: Validación de resultados con Radon
 
-Después de calcular la complejidad ciclomática mediante el recorrido del AST, es conveniente validar que los resultados obtenidos por nuestro analizador sean consistentes con una herramienta especializada.
+[`src/validacion.py`](src/validacion.py) usa Radon como referencia externa para la
+complejidad ciclomática. `obtener_complejidad_radon` recibe el código fuente como
+texto. Con `cc_visit` obtiene los bloques reconocidos por Radon y construye un
+diccionario con el nombre y la complejidad de cada bloque.
 
-Para esta validación utilizamos **Radon**, una librería de Python capaz de calcular diferentes métricas de calidad y complejidad de código.
+[`tests/test_validacion.py`](tests/test_validacion.py) pasa el mismo código a
+ambos analizadores y compara sus diccionarios de complejidad. Cubre una función
+simple, un `if`, condicionales anidados y un archivo con varias funciones,
+incluida una asíncrona con un bucle y un operador booleano.
 
-La comparación permite analizar una misma función mediante dos métodos:
+Desde la raíz del repositorio, con Python 3.10 o posterior, instala las
+dependencias y ejecuta las pruebas:
 
-1. Nuestro algoritmo basado en AST y pattern matching.
-2. El cálculo realizado por Radon.
-
-Si ambos resultados coinciden, tenemos una evidencia adicional de que nuestro cálculo de complejidad ciclomática está funcionando correctamente.
-
-```python
-from radon.complexity import cc_visit
-
-
-def obtener_complejidad_radon(codigo_fuente: str) -> dict:
-    """
-    Calcula la complejidad ciclomática de las funciones usando Radon.
-
-    Args:
-        codigo_fuente (str): Código Python que se desea analizar.
-
-    Returns:
-        dict: Diccionario con el nombre de cada función y su
-        complejidad ciclomática.
-    """
-    bloques = cc_visit(codigo_fuente)
-
-    return {
-        bloque.name: bloque.complexity
-        for bloque in bloques
-    }
-
-
-def comparar_con_radon(ruta_archivo: str):
-    """
-    Compara la complejidad calculada por nuestro analizador con Radon.
-    """
-    with open(ruta_archivo, "r", encoding="utf-8") as archivo:
-        codigo = archivo.read()
-
-    metricas_propias = analizar_archivo_py(ruta_archivo)
-    metricas_radon = obtener_complejidad_radon(codigo)
-
-    print("=== COMPARACIÓN CON RADON ===\n")
-
-    for metrica in metricas_propias:
-        propia = metrica.cyclomatic_complexity
-        resultado_radon = metricas_radon.get(metrica.name)
-
-        print(f"Función: {metrica.name}")
-        print(f"  Nuestro analizador: {propia}")
-        print(f"  Radon: {resultado_radon}")
-
-        if resultado_radon is None:
-            print("  Resultado: función no encontrada por Radon")
-        elif propia == resultado_radon:
-            print("  Resultado: COINCIDEN")
-        else:
-            print("  Resultado: NO COINCIDEN")
-
-        print()
+```bash
+python -m pip install -r requirements.txt pytest
+python -m pytest -v
 ```
 
+La coincidencia respalda el cálculo para los casos probados. Por ejemplo, en
+un `match` con `case 0` y `case _`, el analizador del proyecto suma los dos casos
+a la complejidad base y devuelve 3. Radon 6.0.1 excluye el caso comodín del
+incremento y devuelve 2. La comparación por nombre presupone nombres únicos
+entre los bloques analizados.
