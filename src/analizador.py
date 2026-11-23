@@ -1,4 +1,5 @@
 import ast
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Tuple, Union
 
@@ -34,39 +35,39 @@ def calcular_metricas_funcion(func_node: Union[ast.FunctionDef, ast.AsyncFunctio
     max_profundidad = 0
 
     # Función recursiva interna para recorrer el AST usando 'match'
-    def recorrer_nodos(nodo: ast.AST, profundidad_actual: int = 0):
+    def recorrer_nodos(nodos: Iterable[ast.AST], profundidad_actual: int = 0):
         nonlocal cc, max_profundidad
         
         if profundidad_actual > max_profundidad:
             max_profundidad = profundidad_actual
 
-        for hijo in ast.iter_child_nodes(nodo):
+        for hijo in nodos:
             # Clasificación de nodos usando pattern matching (match-case)
             match hijo:
                 case ast.If() | ast.While() | ast.For() | ast.AsyncFor() | ast.ExceptHandler():
                     cc += 1
                     # Estructuras de control que incrementan el anidamiento
-                    recorrer_nodos(hijo, profundidad_actual + 1)
+                    recorrer_nodos(ast.iter_child_nodes(hijo), profundidad_actual + 1)
                     
                 case ast.BoolOp():
                     # Operadores booleanos (and / or) añaden complejidad
                     cc += len(hijo.values) - 1
-                    recorrer_nodos(hijo, profundidad_actual)
+                    recorrer_nodos(ast.iter_child_nodes(hijo), profundidad_actual)
                     
                 case ast.Match():
                     # Estructuras match-case (Python 3.10+)
                     cc += len(hijo.cases)
-                    recorrer_nodos(hijo, profundidad_actual + 1)
+                    recorrer_nodos(ast.iter_child_nodes(hijo), profundidad_actual + 1)
                     
-                case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.ClassDef():
-                    # Evitamos descender a funciones o clases internas anidadas en el mismo scope por simplicidad
+                case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.ClassDef() | ast.Lambda():
+                    # El cuerpo de un ámbito interno se evalúa por separado.
                     continue
                     
                 case _:
                     # Cualquier otro nodo genérico que no altera directamente la CC
-                    recorrer_nodos(hijo, profundidad_actual)
+                    recorrer_nodos(ast.iter_child_nodes(hijo), profundidad_actual)
 
-    recorrer_nodos(func_node, profundidad_actual=0)
+    recorrer_nodos(func_node.body)
 
     return FunctionMetrics(
         name=nombre,
