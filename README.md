@@ -109,12 +109,40 @@ Puedes usar Radon desde la línea de comandos o integrarla en flujos de trabajo 
 
 El proyecto usa la complejidad ciclomática de Radon. Las demás métricas de la biblioteca forman parte del contexto académico.
 
-## Referencias
+## Referencias académicas
 
-- McCabe, T.J. (1976). *A Complexity Measure*
-- Halstead, M.H. (1977). *Elements of Software Science*
-- **Radon**: https://radon.readthedocs.io/
-- **SonarSource Cognitive Complexity**: https://www.sonarsource.com/
+### ACM Digital Library
+
+- J. L. Elshoff and M. Marcotty, “On the use of the cyclomatic number to measure program complexity,” *ACM SIGPLAN Notices*, vol. 13, no. 12, pp. 29–40, 1978.
+
+- G. K. Conrado, A. K. Goharshady, K. Kochekov, Y. C. Tsai, and A. K. Zaher, “Exploiting the Sparseness of Control-Flow and Call Graphs for Efficient and On-Demand Algebraic Program Analysis,” *Proceedings of the ACM on Programming Languages*, vol. 7, OOPSLA2, 2023.
+
+### IEEE Xplore
+
+- T. J. McCabe, “A Complexity Measure,” *IEEE Transactions on Software Engineering*, vol. SE-2, no. 4, pp. 308–320, 1976.
+
+- G. A. Campbell, “Cognitive Complexity — An Overview and Evaluation,” in *2018 IEEE/ACM International Conference on Technical Debt (TechDebt)*, 2018.
+
+- “Applying Halstead Software Science on Different Programming Languages for Analyzing Software Complexity,” in *2020 4th International Conference on Trends in Electronics and Informatics (ICOEI)*, 2020.
+
+## Referencias técnicas
+
+- Radon documentation: https://radon.readthedocs.io/
+- SonarSource Cognitive Complexity: https://www.sonarsource.com/
+
+## Integrantes y contribuciones
+
+- Eduardo Antolín Herrera Solórzano:
+  - Validación de complejidad ciclomática con Radon.
+  - Pruebas de comparación entre el analizador propio y Radon.
+  - Integración y pruebas del sistema.
+
+- Luis Giovanni Pineda:
+  - Analizador principal basado en AST.
+  - Cálculo de complejidad ciclomática y métricas básicas.
+
+- Miguel Ángel Palomino Aguilar:
+  - Documentación y fundamentos teóricos del proyecto.
 
 ## Licencia
 
