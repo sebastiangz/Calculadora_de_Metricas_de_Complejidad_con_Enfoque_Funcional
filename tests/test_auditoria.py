@@ -2,6 +2,7 @@ import ast
 import json
 import subprocess
 import sys
+import locale
 from html import escape
 from math import log2
 from pathlib import Path
@@ -149,7 +150,7 @@ def test_cli_codigos_y_entradas(tmp_path, argumentos, estado, mensaje):
         (tmp_path / nombre).write_bytes(contenido)
     resultado = subprocess.run(
         [sys.executable, str(RAIZ / "main.py"), *argumentos],
-        cwd=tmp_path, capture_output=True, text=True, encoding="utf-8",
+        cwd=tmp_path, capture_output=True, text=True, encoding=locale.getpreferredencoding(False),,
     )
     assert resultado.returncode == estado
     if estado == 0:
