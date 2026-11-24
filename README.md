@@ -125,6 +125,10 @@ El proyecto usa la complejidad ciclomática de Radon. Las demás métricas de la
 
 - “Applying Halstead Software Science on Different Programming Languages for Analyzing Software Complexity,” in *2020 4th International Conference on Trends in Electronics and Informatics (ICOEI)*, 2020.
 
+## Video representativo
+
+- https://vt.tiktok.com/ZSsFd6way/
+
 ## Referencias técnicas
 
 - Radon documentation: https://radon.readthedocs.io/
